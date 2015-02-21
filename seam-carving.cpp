@@ -2,6 +2,7 @@
 #include <opencv2/imgproc/imgproc.hpp>
 
 #include <iostream>
+#include <cstring>
 
 using namespace cv;
 using namespace std;
@@ -16,7 +17,7 @@ Mat calculate_energy(Mat I){
     convertScaleAbs(Iy,Iy);
 
     Mat energy;
-    addWeighted(Ix, 0.5, Iy, 0.5, 0, energy);
+    addWeighted(Ix, 0.5, Iy, 0.5, 0, energy, CV_8U);
 
     return energy;
 }
@@ -50,13 +51,28 @@ Mat calculate_energy2(Mat I){
     return energy;
 }
 
+int query(int bit[], int idx){
+    int ret = 0;
+
+    for(int x = idx;x > 0;x -= x & -x)
+        ret += bit[x];
+
+    return ret;
+}
+
+void update(int bit[], int maxX, int idx){
+    for(int x = idx;x < maxX;x += x & -x)
+        ++bit[x];
+}
+
 int main(){
-    Mat_<Vec3b> I = imread("../beach.jpg");
+    Mat_<Vec3b> I = imread("../bench.jpg");
 
     imshow("seam-carving",I);
     waitKey(0);
 
     int Y = I.rows,X = I.cols;
+    int Y0 = Y,X0 = X;
 
     Mat gray,energy;
     
@@ -67,19 +83,23 @@ int main(){
 
     unsigned int dpH[X][Y],dpV[X][Y];
     int dirH[X][Y],dirV[X][Y];
-    
+    vector<int> posH[X],posV[Y];
+    int bitH[Y + 1],bitV[X + 1];
+
+    Mat seams = I.clone();
+
     // Horizontal seams
 
     for(int it = 0;it < 50;++it){
         cvtColor(I,gray,CV_BGR2GRAY);
-        energy = calculate_energy(gray);
+        energy = calculate_energy2(gray);
 
         for(int y = 0;y < Y;++y)
-            dpH[0][y] = energy.at<uint>(y,0);
+            dpH[0][y] = energy.at<uchar>(y,0);
 
         for(int x = 1;x < X;++x){
             for(int y = 0;y < Y;++y){
-                uint val = energy.at<uint>(y,x);
+                uint val = energy.at<uchar>(y,x);
                 dpH[x][y] = -1;
 
                 if(y > 0 && (dpH[x][y] == -1 || val + dpH[x - 1][y - 1] < dpH[x][y])){
@@ -99,7 +119,6 @@ int main(){
             }
         }
 
-        //Mat seams = I.clone();
         unsigned int bestH = dpH[X - 1][0];
         int cury = 0;
 
@@ -110,10 +129,13 @@ int main(){
             }
         }
 
+        //cout << "cury = " << cury << endl;
+        //cout << "bestH = " << bestH << endl;
+
         Mat_<Vec3b> tmp(Y - 1,X);
 
-        for(int x = X - 1;x >= 0;--x){
-            //seams.at<Vec3b>(cury,x) = Vec3b(0,0,255);
+        for(int x = X - 1,cont = 0;x >= 0;--x,++cont){
+            posH[x].push_back(cury);
 
             for(int i = 0;i < Y;++i){
                 if(i < cury) tmp.at<Vec3b>(i,x) = I.at<Vec3b>(i,x);
@@ -128,9 +150,26 @@ int main(){
         --Y;
     }
 
+    //imwrite("seam_horizontal2.jpg", I);
+
+    for(int x = 0;x < X;++x){
+        memset(bitH,0,sizeof bitH);
+
+        for(int i = 0;i < posH[x].size();++i){
+            int y = posH[x][i];
+            update(bitH,Y0 + 1,y + 1);
+            y += query(bitH,y + 1) - 1;
+
+            seams.at<Vec3b>(y,x) = Vec3b(0,0,255);
+        }
+    }
+
     // Vertical seams
 
     for(int it = 0;it < 100;++it){
+        cvtColor(I,gray,CV_BGR2GRAY);
+        energy = calculate_energy2(gray);
+
         for(int x = 0;x < X;++x)
             dpV[x][0] = energy.at<uint>(0,x);
 
@@ -156,7 +195,7 @@ int main(){
             }
         }
 
-        int bestV = dpV[0][Y - 1];
+        unsigned int bestV = dpV[0][Y - 1];
         int curx = 0;
 
         for(int x = 0;x < X;++x){
@@ -169,7 +208,7 @@ int main(){
         Mat_<Vec3b> tmp(Y,X - 1);
 
         for(int y = Y - 1;y >= 0;--y){
-            //seams.at<Vec3b>(y,curx) = Vec3b(0,0,255);
+            posV[y].push_back(curx);
 
             for(int i = 0;i < X;++i){
                 if(i < curx) tmp.at<Vec3b>(y,i) = I.at<Vec3b>(y,i);
@@ -184,7 +223,7 @@ int main(){
         --X;
     }
 
-    //imshow("seam-carving",seams);
+    imshow("seams",seams);
     imshow("seam-carving-out",I);
     waitKey(0);
 

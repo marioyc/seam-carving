@@ -51,15 +51,9 @@ Mat calculate_energy(Mat I){
     return energy;
 }
 
-int main(){
-    Mat_<Vec3b> I = imread("../bench.jpg");
-
-    imshow("seam-carving",I);
-    waitKey(0);
-
-    int Y = I.rows,X = I.cols;
-    int Y0 = Y,X0 = X;
-
+void reduce(Mat I, int YF, int XF){
+    int Y0 = I.rows,X0 = I.cols;
+    int Y = Y0,X = X0;
     Mat gray,energy;
     
     //cvtColor(I,gray,CV_BGR2GRAY);
@@ -80,7 +74,7 @@ int main(){
 
     // Horizontal seams
 
-    for(int it = 0;it < 50;++it){
+    for(int it = 0;it < X0 - XF;++it){
         cvtColor(I,gray,CV_BGR2GRAY);
         energy = calculate_energy(gray);
 
@@ -145,7 +139,7 @@ int main(){
 
     // Vertical seams
 
-    for(int it = 0;it < 100;++it){
+    for(int it = 0;it < Y0 - YF;++it){
         cvtColor(I,gray,CV_BGR2GRAY);
         energy = calculate_energy(gray);
 
@@ -213,6 +207,27 @@ int main(){
     imshow("seam-carving-out",I);
     //imwrite("seam-carving-out-2.jpg",I);
     waitKey(0);
+}
+
+int main(){
+    Mat_<Vec3b> I = imread("../bench.jpg");
+
+    imshow("seam-carving",I);
+    waitKey(0);
+
+    int Y0 = I.rows,X0 = I.cols,YF,XF;
+
+    cout << "Original dimensions: Rows = " << Y0 << " Cols = " << X0 << '\n';
+
+    cout << "Desired dimension:\n";
+
+    cout << "Rows = ";
+    cin >> YF;
+
+    cout << "Cols = ";
+    cin >> XF;
+
+    reduce(I,YF,XF);
 
     return 0;
 }

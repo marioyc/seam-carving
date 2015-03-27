@@ -23,6 +23,10 @@ using namespace std;
     return energy;
 }*/
 
+int get(Mat I, int x, int y){
+    return (int)I.at<uchar>(y,x);
+}
+
 Mat calculate_energy(Mat I){
     int Y = I.rows,X = I.cols;
     Mat energy = Mat(Y, X, CV_32S);
@@ -59,7 +63,8 @@ Mat gray,energy;
 int dpH[MAXR][MAXC],dpV[MAXR][MAXC];
 int dirH[MAXR][MAXC],dirV[MAXR][MAXC];
 
-void reduce(Mat &I, int YF, int XF){
+void reduce(Mat &I, int YF, int XF, bool forward=false){
+    cout << "REDUCE" << endl;
     int Y0 = I.rows,X0 = I.cols;
     int Y = Y0,X = X0;
     
@@ -90,18 +95,43 @@ void reduce(Mat &I, int YF, int XF){
                 uint val = energy.at<int>(y,x);
                 dpH[x][y] = -1;
 
-                if(y > 0 && (dpH[x][y] == -1 || val + dpH[x - 1][y - 1] < dpH[x][y])){
-                    dpH[x][y] = val + dpH[x - 1][y - 1];
+                int cost1 = 0,cost2 = 0,cost3 = 0;
+
+                if(!forward){
+                    cost1 = val;
+                    cost2 = val;
+                    cost3 = val;
+                }else{
+                    if(y > 0 && y + 1 < Y){
+                        cost1 = abs(get(I,x,y - 1) - get(I,x,y + 1));
+                    }else if(y == 0){
+                        cost1 = abs(get(I,x,y) - get(I,x,y + 1));
+                    }else{
+                        cost1 = abs(get(I,x,y - 1) - get(I,x,y));
+                    }
+                    
+                    cost2 = cost1;
+                    cost3 = cost1;
+
+                    if(y > 0)
+                        cost1 += abs(get(I,x,y - 1) - get(I,x - 1,y));
+
+                    if(y + 1 < Y)
+                        cost3 += abs(get(I,x,y + 1) - get(I,x - 1,y + 1));
+                }
+
+                if(y > 0 && (dpH[x][y] == -1 || cost1 + dpH[x - 1][y - 1] < dpH[x][y])){
+                    dpH[x][y] = cost1 + dpH[x - 1][y - 1];
                     dirH[x][y] = -1;
                 }
 
-                if(dpH[x][y] == -1 || val + dpH[x - 1][y] < dpH[x][y]){
-                    dpH[x][y] = val + dpH[x - 1][y];
+                if(dpH[x][y] == -1 || cost2 + dpH[x - 1][y] < dpH[x][y]){
+                    dpH[x][y] = cost2 + dpH[x - 1][y];
                     dirH[x][y] = 0;
                 }
 
-                if(y + 1 < Y && (dpH[x][y] == -1 || val + dpH[x - 1][y + 1] < dpH[x][y])){
-                    dpH[x][y] = val + dpH[x - 1][y + 1];
+                if(y + 1 < Y && (dpH[x][y] == -1 || cost3 + dpH[x - 1][y + 1] < dpH[x][y])){
+                    dpH[x][y] = cost3 + dpH[x - 1][y + 1];
                     dirH[x][y] = 1;
                 }
             }
@@ -146,25 +176,50 @@ void reduce(Mat &I, int YF, int XF){
         energy = calculate_energy(gray);
 
         for(int x = 0;x < X;++x)
-            dpV[x][0] = energy.at<int>(0,x);
+            dpV[x][0] = energy.at<int>(0,x); 
 
         for(int y = 1;y < Y;++y){
             for(int x = 0;x < X;++x){
                 int val = energy.at<int>(y,x);
                 dpV[x][y] = -1;
 
-                if(x > 0 && (dpV[x][y] == -1 || val + dpV[x - 1][y - 1] < dpV[x][y])){
-                    dpV[x][y] = val + dpV[x - 1][y - 1];
+                int cost1 = 0,cost2 = 0,cost3 = 0;
+
+                if(!forward){
+                    cost1 = val;
+                    cost2 = val;
+                    cost3 = val;
+                }else{
+                    if(x > 0 && x + 1 < X){
+                        cost1 = abs(get(I,x - 1,y) - get(I,x + 1,y));
+                    }else if(x == 0){
+                        cost1 = abs(100000 - get(I,x + 1,y));
+                    }else{
+                        cost1 = abs(get(I,x - 1,y) - 100000);
+                    }
+
+                    cost2 = cost1;
+                    cost3 = cost1;
+
+                    if(x > 0)
+                        cost1 += abs(get(I,x - 1,y) - get(I,x,y - 1));
+
+                    if(x + 1 < X)
+                        cost3 += abs(get(I,x + 1,y) - get(I,x,y - 1));
+                }
+
+                if(x > 0 && (dpV[x][y] == -1 || cost1 + dpV[x - 1][y - 1] < dpV[x][y])){
+                    dpV[x][y] = cost1 + dpV[x - 1][y - 1];
                     dirV[x][y] = -1;
                 }
 
-                if(dpV[x][y] == -1 || val + dpV[x][y - 1] < dpV[x][y]){
-                    dpV[x][y] = val + dpV[x][y - 1];
+                if(dpV[x][y] == -1 || cost2 + dpV[x][y - 1] < dpV[x][y]){
+                    dpV[x][y] = cost2 + dpV[x][y - 1];
                     dirV[x][y] = 0;
                 }
 
-                if(x + 1 < X && (dpV[x][y] == -1 || val + dpV[x + 1][y - 1] < dpV[x][y])){
-                    dpV[x][y] = val + dpV[x + 1][y - 1];
+                if(x + 1 < X && (dpV[x][y] == -1 || cost3 + dpV[x + 1][y - 1] < dpV[x][y])){
+                    dpV[x][y] = cost3 + dpV[x + 1][y - 1];
                     dirV[x][y] = 1;
                 }
             }
@@ -202,11 +257,18 @@ void reduce(Mat &I, int YF, int XF){
         --X;
     }
 
-    imshow("seams",seams);
+    string w1 = "seams",w2 = "seam-carving-out";
+
+    if(forward){
+        w1 += "-forward";
+        w2 += "-forward";
+    }
+
+    imshow(w1,seams);
     //imwrite("seams.jpg", seams);
-    //imshow("seam-carving-out",I);
+    imshow(w2,I);
     //imwrite("seam-carving-out-2.jpg",I);
-    //waitKey(0);
+    waitKey(0);
 }
 
 void remove_horizontal(Mat &I, int YF){
@@ -571,24 +633,29 @@ int main(){
 
     cout << "Original dimensions: Rows = " << Y0 << " Cols = " << X0 << '\n';
 
-    cout << "Desired dimension:\n";
-
-    cout << "Rows = ";
+    //cout << "Rows = ";
     cin >> YF;
     YF += Y0;
 
-    cout << "Cols = ";
+    //cout << "Cols = ";
     cin >> XF;
     XF += X0 ;
 
-    process(I,YF,XF);
+    cout << "Desired dimension: Rows = " << YF << " Cols = " << XF << '\n';
+
+    Mat_<Vec3b> I2 = I.clone();
+
+    reduce(I,YF,XF);
+    reduce(I2,YF,XF,true);
+
+    /*process(I,YF,XF);
 
     imshow("seam-carving-out",I);
     waitKey(0);
 
     process(I,Y0,X0);
     imshow("seam-carving-out-2",I);
-    waitKey(0);
+    waitKey(0);*/
 
     fclose(stdin);
 

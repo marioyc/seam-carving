@@ -103,21 +103,22 @@ void reduce(Mat &I, int YF, int XF, bool forward=false){
                     cost3 = val;
                 }else{
                     if(y > 0 && y + 1 < Y){
-                        cost1 = abs(get(I,x,y - 1) - get(I,x,y + 1));
+                        cost1 = abs(get(gray,x,y - 1) - get(gray,x,y + 1));
                     }else if(y == 0){
-                        cost1 = abs(get(I,x,y) - get(I,x,y + 1));
+                        cost1 = abs(get(gray,x,y) - get(gray,x,y + 1));
                     }else{
-                        cost1 = abs(get(I,x,y - 1) - get(I,x,y));
+                        cost1 = abs(get(gray,x,y - 1) - get(gray,x,y));
                     }
                     
+                    cost1 = cost1 + val;
                     cost2 = cost1;
                     cost3 = cost1;
 
                     if(y > 0)
-                        cost1 += abs(get(I,x,y - 1) - get(I,x - 1,y));
+                        cost1 += abs(get(gray,x,y - 1) - get(gray,x - 1,y));
 
                     if(y + 1 < Y)
-                        cost3 += abs(get(I,x,y + 1) - get(I,x - 1,y + 1));
+                        cost3 += abs(get(gray,x,y + 1) - get(gray,x - 1,y + 1));
                 }
 
                 if(y > 0 && (dpH[x][y] == -1 || cost1 + dpH[x - 1][y - 1] < dpH[x][y])){
@@ -191,21 +192,21 @@ void reduce(Mat &I, int YF, int XF, bool forward=false){
                     cost3 = val;
                 }else{
                     if(x > 0 && x + 1 < X){
-                        cost1 = abs(get(I,x - 1,y) - get(I,x + 1,y));
+                        cost1 = abs(get(gray,x - 1,y) - get(gray,x + 1,y));
                     }else if(x == 0){
-                        cost1 = abs(100000 - get(I,x + 1,y));
+                        cost1 = abs(get(gray,x,y) - get(gray,x + 1,y));
                     }else{
-                        cost1 = abs(get(I,x - 1,y) - 100000);
+                        cost1 = abs(get(gray,x - 1,y) - get(gray,x,y));
                     }
 
                     cost2 = cost1;
                     cost3 = cost1;
 
                     if(x > 0)
-                        cost1 += abs(get(I,x - 1,y) - get(I,x,y - 1));
+                        cost1 += abs(get(gray,x - 1,y) - get(gray,x,y - 1));
 
                     if(x + 1 < X)
-                        cost3 += abs(get(I,x + 1,y) - get(I,x,y - 1));
+                        cost3 += abs(get(gray,x + 1,y) - get(gray,x,y - 1));
                 }
 
                 if(x > 0 && (dpV[x][y] == -1 || cost1 + dpV[x - 1][y - 1] < dpV[x][y])){

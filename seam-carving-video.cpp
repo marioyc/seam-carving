@@ -106,14 +106,6 @@ vector<int> get_min_cut(int V){
 		Q.pop();
 
 		for(int e = G.last[cur];e != -1;e = G.next[e]){
-			/*if(e % 2 == 0){
-				if(G.cap[e] == 0){
-					ret.push_back(e);
-				}else if(!inS[ G.to[e] ]){
-					inS[ G.to[e] ] = true;
-					Q.push(G.to[e]);
-				}
-			}*/
 			if(e % 2 == 0 && G.cap[e] > 0 && !inS[ G.to[e] ]){
 				inS[ G.to[e] ] = true;
 				Q.push(G.to[e]);
@@ -133,10 +125,10 @@ vector<int> get_min_cut(int V){
 #define MAXT 500
 
 int T = 0,Y0,X0;
-Mat frame[MAXT];//,grays[MAXT];
+Mat frame[MAXT];
 int Yin,Xin;
 Mat frameIn[MAXT],graysIn[MAXT];
-Mat frameOut[MAXT];//,graysOut[MAXT];
+Mat frameOut[MAXT];
 Mat seam[MAXT];
 
 int id(int t, int y, int x){
@@ -256,9 +248,10 @@ void remove_horizontal_seam(){
 			G.add_edge(id(t,Yin - 1,x),V - 1,INF);
 	}
 
-	cout << "flow = " << G.max_flow(V - 2,V - 1,V) << endl;
-
-	cout << "E = " << G.E << endl;
+    cout << "E = " << G.E << endl;
+    cout << "max flow" << endl;
+	G.max_flow(V - 2,V - 1,V);
+	
 	for(int t = 0;t < T;++t)
 		seam[t] = frameIn[t].clone();
 
@@ -271,13 +264,11 @@ void remove_horizontal_seam(){
 	for(int i = 0;i < cut.size();i++){
 		int e = cut[i];
 		int u = G.to[e ^ 1],v = G.to[e];
-		//cout << u << " " << v << endl;
 
 		int t1 = u / (Yin * Xin),y1 = u % (Yin * Xin) / Xin,x1 = u % Xin;
 		int t2 = v / (Yin * Xin),y2 = v % (Yin * Xin) / Xin,x2 = v % Xin;
 
 		if(t1 == t2 && x1 == x2){
-			//cout << t1 << " " << y1 << " " << x1 << " | " << t2 << y2 << " " << x2 << endl;
 			seam[t1].at<Vec3b>(y1,x1) = Vec3b(0,0,255);
 
 			for(int y = 0;y < Yin;++y){
@@ -289,17 +280,26 @@ void remove_horizontal_seam(){
 		}
 	}
 
-	for(int t = 0;t < T;++t){
-		
-		cout << "show frame " << t << endl;
+    for(int t = 0;t < T;++t)
+        frameIn[t] = frameOut[t].clone();
+
+    // show seams
+	/*
+    for(int t = 0;t < T;++t){
 		imshow("original",frame[t]);
 		imshow("seam",seam[t]);
 		imshow("result",frameOut[t]);
 		waitKey(0);
-		
-
-		frameIn[t] = frameOut[t].clone();
 	}
+
+    destroyWindow("seam");
+    */
+
+    // save seams
+    VideoWriter out("seams-horizontal.avi",CV_FOURCC('M','J','P','G'),10, Size(Xin,Yin),true);
+
+    for(int t = 0;t < T;++t)
+        out.write(seam[t]);
 
 	--Yin;
 }
@@ -413,9 +413,11 @@ void remove_vertical_seam(){
 			G.add_edge(id(t,y,Xin - 1),V - 1,INF);
 	}
 
-	cout << "flow = " << G.max_flow(V - 2,V - 1,V) << endl;
+    cout << "E = " << G.E << endl;
+    cout << "max flow" << endl;
+	G.max_flow(V - 2,V - 1,V);
 
-	cout << "E = " << G.E << endl;
+	
 	for(int t = 0;t < T;++t)
 		seam[t] = frameIn[t].clone();
 
@@ -428,13 +430,11 @@ void remove_vertical_seam(){
 	for(int i = 0;i < cut.size();i++){
 		int e = cut[i];
 		int u = G.to[e ^ 1],v = G.to[e];
-		//cout << u << " " << v << endl;
 
 		int t1 = u / (Yin * Xin),y1 = u % (Yin * Xin) / Xin,x1 = u % Xin;
 		int t2 = v / (Yin * Xin),y2 = v % (Yin * Xin) / Xin,x2 = v % Xin;
 
 		if(t1 == t2 && y1 == y2){
-			//cout << t1 << " " << y1 << " " << x1 << " | " << t2 << y2 << " " << x2 << endl;
 			seam[t1].at<Vec3b>(y1,x1) = Vec3b(0,0,255);
 
 			for(int x = 0;x < Xin;++x){
@@ -446,50 +446,68 @@ void remove_vertical_seam(){
 		}
 	}
 
+    for(int t = 0;t < T;++t)
+        frameIn[t] = frameOut[t].clone();
+
+    // show seams
+    /*
 	for(int t = 0;t < T;++t){
-		
-		cout << "show frame " << t << endl;
 		imshow("original",frame[t]);
 		imshow("seam",seam[t]);
 		imshow("result",frameOut[t]);
 		waitKey(0);
-		
-
-		frameIn[t] = frameOut[t].clone();
 	}
 
-	--Xin;
+    destroyWindow("seam");
+    */
+
+    // save seams
+    VideoWriter out("seams-vertical.avi",CV_FOURCC('M','J','P','G'),10, Size(Xin,Yin),true);
+
+    for(int t = 0;t < T;++t)
+        out.write(seam[t]);
+
+    --Xin;
 }
 
 void reduce(int dy, int dx){
 	cout << "reduce : " << dy << " " << dx << endl;
+
 	for(int i = 0;i < T;++i)
 		frameIn[i] = frame[i].clone();
 	Yin = Y0; Xin = X0;
 
 	for(int i = 0;i < dy;++i){
+		cout << "\nHorizontal seam " << i << endl;
 		remove_horizontal_seam();
 	}
 
 	for(int i = 0;i < dx;++i){
+		cout << "\nVertical seam " << i << endl;
 		remove_vertical_seam();
 	}
 
-	/*
+    // show results
+    /*
 	for(int t = 0;t < T;++t){
-		cout << "show frame " << t << endl;
+		cout << "show result " << t << endl;
 		imshow("original",frame[t]);
 		imshow("result",frameOut[t]);
 		waitKey(0);
 	}
-	*/
-	cout << "end reduce" << endl;
+    */
+
+    // save results
+    VideoWriter out("result.avi",CV_FOURCC('M','J','P','G'),10, Size(Xin,Yin),true);
+
+    for(int t = 0;t < T;++t)
+        out.write(frameIn[t]);
 }
 
 int main(){
-	freopen("../input-video.txt","r",stdin);
+    freopen("../input-video.txt","r",stdin);
 
-	string file;
+    string file;
     cin >> file;
 
     int dy,dx;
@@ -497,18 +515,21 @@ int main(){
     cin >> dy >> dx;
 
     VideoCapture capture;
-    capture.open("../videos/basketball.avi");
+    capture.open(file);
 
     while(true){
     	capture >> frame[T];
-    	
+
     	if(frame[T].empty())
     		break;
     	
     	++T;
     }
 
-    T = min(T,5);
+    int maxT;
+    cin >> maxT;
+
+    T = min(T,maxT);
     cout << "T = " << T << endl;
 
     Y0 = frame[0].rows;
@@ -518,5 +539,5 @@ int main(){
 
     reduce(dy,dx);
 
-	return 0;
+    return 0;
 }

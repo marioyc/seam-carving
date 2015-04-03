@@ -8,21 +8,6 @@
 using namespace cv;
 using namespace std;
 
-/*Mat calculate_energy(Mat I){
-    Mat Ix,Iy;
-
-    Sobel(I,Ix,CV_32F,1,0);
-    convertScaleAbs(Ix,Ix);
-
-    Sobel(I,Iy,CV_32F,0,1);
-    convertScaleAbs(Iy,Iy);
-
-    Mat energy;
-    addWeighted(Ix, 0.5, Iy, 0.5, 0, energy, CV_8U);
-
-    return energy;
-}*/
-
 int get(Mat I, int x, int y){
     return (int)I.at<uchar>(y,x);
 }
@@ -67,11 +52,6 @@ void reduce(Mat &I, int YF, int XF, bool forward=false){
     cout << "REDUCE" << endl;
     int Y0 = I.rows,X0 = I.cols;
     int Y = Y0,X = X0;
-    
-    //cvtColor(I,gray,CV_BGR2GRAY);
-    //energy = calculate_energy(gray);
-    //imshow("seam-carving",energy);
-    //waitKey(0);
     
     pair<int, int> pos[X][Y];
 
@@ -266,9 +246,19 @@ void reduce(Mat &I, int YF, int XF, bool forward=false){
     }
 
     imshow(w1,seams);
-    //imwrite("seams.jpg", seams);
+
+    if(forward)
+        imwrite("seams-forward.jpg", seams);
+    else
+        imwrite("seams.jpg", seams);
+
     imshow(w2,I);
-    //imwrite("seam-carving-out-2.jpg",I);
+
+    if(forward)
+        imwrite("result-forward.jpg",I);
+    else
+        imwrite("result.jpg",I);
+
     waitKey(0);
 }
 
@@ -561,7 +551,6 @@ void add_vertical(Mat &I, int XF){
         Mat_<Vec3b> tmp(Y,X - 1);
 
         for(int y = Y - 1;y >= 0;--y){
-            //if(it == 1) cout << y << endl;
             for(int i = 0;i < X;++i){
                 if(i < curx){
                     tmp.at<Vec3b>(y,i) = I.at<Vec3b>(y,i);
@@ -619,7 +608,7 @@ void process(Mat &I, int YF, int XF){
 }
 
 int main(){
-    freopen("../input.txt","r",stdin);
+    freopen("../input-image.txt","r",stdin);
 
     string file;
     cin >> file;
@@ -634,11 +623,9 @@ int main(){
 
     cout << "Original dimensions: Rows = " << Y0 << " Cols = " << X0 << '\n';
 
-    //cout << "Rows = ";
     cin >> YF;
     YF += Y0;
 
-    //cout << "Cols = ";
     cin >> XF;
     XF += X0 ;
 

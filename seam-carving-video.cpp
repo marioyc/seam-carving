@@ -253,12 +253,18 @@ void remove_vertical_seam(){
 	}
 
 	for(int t = 0;t < T;++t){
+		/*
 		cout << "show frame " << t << endl;
-		imshow("original",frameIn[t]);
+		imshow("original",frame[t]);
 		imshow("seam",seam[t]);
 		imshow("result",frameOut[t]);
 		waitKey(0);
+		*/
+
+		frameIn[t] = frameOut[t].clone();
 	}
+
+	--Xin;
 }
 
 void reduce(int dy, int dx){
@@ -273,6 +279,13 @@ void reduce(int dy, int dx){
 
 	for(int i = 0;i < dx;++i){
 		remove_vertical_seam();
+	}
+
+	for(int t = 0;t < T;++t){
+		cout << "show frame " << t << endl;
+		imshow("original",frame[t]);
+		imshow("result",frameOut[t]);
+		waitKey(0);
 	}
 }
 

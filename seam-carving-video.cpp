@@ -12,7 +12,7 @@ using namespace cv;
 using namespace std;
 
 const int INF = 100000000;
-const int MAX_V = 20000000;
+const int MAX_V = 2000000;
 
 struct flow_graph{
     static const int MAX_E = 70000000;
@@ -163,6 +163,8 @@ void remove_vertical_seam(){
 
 		for(int y = 0;y < Yin;++y){
 			for(int x = 0;x < Xin;++x){
+				// (Y,X) edges
+
 				if(x + 1 < Xin){
 					int LR;
 
@@ -177,7 +179,7 @@ void remove_vertical_seam(){
 				}
 				
 				if(y + 1 < Yin){
-					int posLU,negLU;
+					int posLU = 0,negLU = 0;
 
 					if(y > 0 && x > 0)
 						posLU = abs(get(graysIn[t],y - 1,x) - get(graysIn[t],y,x - 1));
@@ -185,8 +187,6 @@ void remove_vertical_seam(){
 						posLU = abs(get(graysIn[t],y - 1,x) - get(graysIn[t],y,x));
 					else if(x > 0)
 						posLU = abs(get(graysIn[t],y,x) - get(graysIn[t],y,x - 1));
-					else
-						posLU = 0;
 
 					if(y + 1 < Yin && x > 0)
 						negLU = abs(get(graysIn[t],y + 1,x) - get(graysIn[t],y,x - 1));
@@ -194,8 +194,6 @@ void remove_vertical_seam(){
 						negLU = abs(get(graysIn[t],y + 1,x) - get(graysIn[t],y,x));
 					else if(x > 0)
 						negLU = abs(get(graysIn[t],y,x) - get(graysIn[t],y,x - 1));
-					else
-						negLU = 0;
 
 					int u = id(t,y,x),v = id(t,y + 1,x);
 					G.add_edge(u,v,negLU);
@@ -204,9 +202,52 @@ void remove_vertical_seam(){
 				
 				if(x > 0 && y > 0)
 					G.add_edge(id(t,y,x),id(t,y - 1,x - 1),INF);
-				
+
 				if(x > 0 && y + 1 < Yin)
 					G.add_edge(id(t,y,x),id(t,y + 1,x - 1),INF);
+
+				// (X,T) edges
+
+				if(t + 1 < T){
+					int LR;
+
+					if(t > 0)
+						LR = abs(get(graysIn[t + 1],y,x) - get(graysIn[t - 1],y,x));
+					else
+						LR = abs(get(graysIn[t + 1],y,x) - get(graysIn[t],y,x));
+
+					int u = id(t,y,x),v = id(t + 1,y,x);
+					G.add_edge(u,v,LR);
+					G.add_edge(u,v,INF);
+				}
+
+				if(x + 1 < Xin){
+					int posLU = 0,negLU = 0;
+
+					if(x > 0 && t > 0)
+						posLU = abs(get(graysIn[t],y,x - 1) - get(graysIn[t - 1],y,x));
+					else if(x > 0)
+						posLU = abs(get(graysIn[t],y,x - 1) - get(graysIn[t],y,x));
+					else if(t > 0)
+						posLU = abs(get(graysIn[t],y,x) - get(graysIn[t - 1],y,x));
+
+					if(x + 1 < Xin && t > 0)
+						negLU = abs(get(graysIn[t],y,x + 1) - get(graysIn[t - 1],y,x));
+					else if(x + 1 < Xin)
+						negLU = abs(get(graysIn[t],y,x + 1) - get(graysIn[t],y,x));
+					else if(t > 0)
+						negLU = abs(get(graysIn[t],y,x) - get(graysIn[t - 1],y,x));
+
+					int u = id(t,y,x),v = id(t,y,x + 1);
+					G.add_edge(u,v,negLU);
+					G.add_edge(v,u,posLU);
+				}
+				
+				if(t > 0 && x > 0)
+					G.add_edge(id(t,y,x),id(t - 1,y,x - 1),INF);
+
+				if(t > 0 && x + 1 < Xin)
+					G.add_edge(id(t,y,x),id(t - 1,y,x + 1),INF);
 			}
 		}
 	}
@@ -221,7 +262,7 @@ void remove_vertical_seam(){
 
 	cout << "flow = " << G.max_flow(V - 2,V - 1,V) << endl;
 
-	//cout << "E = " << G.E << endl;
+	cout << "E = " << G.E << endl;
 	for(int t = 0;t < T;++t)
 		seam[t] = frameIn[t].clone();
 
@@ -239,7 +280,7 @@ void remove_vertical_seam(){
 		int t1 = u / (Yin * Xin),y1 = u % (Yin * Xin) / Xin,x1 = u % Xin;
 		int t2 = v / (Yin * Xin),y2 = v % (Yin * Xin) / Xin,x2 = v % Xin;
 
-		if(y1 == y2){
+		if(t1 == t2 && y1 == y2){
 			//cout << t1 << " " << y1 << " " << x1 << " | " << t2 << y2 << " " << x2 << endl;
 			seam[t1].at<Vec3b>(y1,x1) = Vec3b(0,0,255);
 
@@ -253,13 +294,13 @@ void remove_vertical_seam(){
 	}
 
 	for(int t = 0;t < T;++t){
-		/*
+		
 		cout << "show frame " << t << endl;
 		imshow("original",frame[t]);
 		imshow("seam",seam[t]);
 		imshow("result",frameOut[t]);
 		waitKey(0);
-		*/
+		
 
 		frameIn[t] = frameOut[t].clone();
 	}
@@ -281,12 +322,14 @@ void reduce(int dy, int dx){
 		remove_vertical_seam();
 	}
 
+	/*
 	for(int t = 0;t < T;++t){
 		cout << "show frame " << t << endl;
 		imshow("original",frame[t]);
 		imshow("result",frameOut[t]);
 		waitKey(0);
 	}
+	*/
 }
 
 int main(){
@@ -315,7 +358,7 @@ int main(){
     	++T;
     }
 
-    T = 5;
+    T = 10;
     cout << "T = " << T << endl;
 
     Y0 = frame[0].rows;

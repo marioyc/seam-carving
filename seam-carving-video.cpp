@@ -13,10 +13,9 @@ using namespace std;
 
 const int INF = 100000000;
 const int MAX_V = 2000000;
+const int MAX_E = 13 * MAX_V;
 
 struct flow_graph{
-    static const int MAX_E = 70000000;
-    
     int E,s,t,head,tail;
     int cap[2 * MAX_E],to[2 * MAX_E],next[2 * MAX_E],last[MAX_V],dist[MAX_V],q[MAX_V],now[MAX_V];
     
@@ -74,9 +73,8 @@ struct flow_graph{
         return 0;
     }
 	
-    long long max_flow(int source, int sink, int V){
+    void max_flow(int source, int sink, int V){
         s = source; t = sink;
-        long long f = 0,df;
 		
         while(bfs()){
             for(int i = 0;i < V;++i) now[i] = last[i];
@@ -84,11 +82,8 @@ struct flow_graph{
             while(true){
                 df = dfs(s,INT_MAX);
                 if(df == 0) break;
-                f += df;
             }
         }
-		
-        return f;
     }
 }G;
 

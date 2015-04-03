@@ -6,7 +6,7 @@ FIND_PACKAGE(OpenCV REQUIRED)
 
 PROJECT(seam-carving)
 
-ADD_EXECUTABLE(seam-carving seam-carving.cpp)
+ADD_EXECUTABLE(seam-carving seam-carving-image.cpp)
 ADD_EXECUTABLE(video-seams seam-carving-video.cpp)
 
 TARGET_LINK_LIBRARIES(seam-carving ${OpenCV_LIBS})

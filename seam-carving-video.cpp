@@ -74,9 +74,9 @@ struct flow_graph{
         return 0;
     }
 	
-    int max_flow(int source, int sink, int V){
+    long long max_flow(int source, int sink, int V){
         s = source; t = sink;
-        int f = 0,df;
+        long long f = 0,df;
 		
         while(bfs()){
             for(int i = 0;i < V;++i) now[i] = last[i];
@@ -114,7 +114,7 @@ vector<int> get_min_cut(int V){
 					Q.push(G.to[e]);
 				}
 			}*/
-			if(e %2 == 0 && G.cap[e] > 0 && !inS[ G.to[e] ]){
+			if(e % 2 == 0 && G.cap[e] > 0 && !inS[ G.to[e] ]){
 				inS[ G.to[e] ] = true;
 				Q.push(G.to[e]);
 			}
@@ -148,7 +148,160 @@ int get(Mat &I, int y, int x){
 }
 
 void remove_horizontal_seam(){
+	for(int t = 0;t < T;++t)
+		cvtColor(frameIn[t],graysIn[t],CV_BGR2GRAY);
 
+	G.clear();
+	int V = 2 + T * Yin * Xin;
+	cout << "V = " << V << endl;
+
+	for(int t = 0;t < T;++t){
+
+		for(int y = 0;y < Yin;++y){
+			for(int x = 0;x < Xin;++x){
+				// (Y,X) edges
+
+				if(y + 1 < Yin){
+					int LR;
+
+					if(y > 0)
+						LR = abs(get(graysIn[t],y + 1,x) - get(graysIn[t],y - 1,x));
+					else
+						LR = abs(get(graysIn[t],y + 1,x) - get(graysIn[t],y,x));
+
+					int u = id(t,y,x),v = id(t,y + 1,x);
+					G.add_edge(u,v,LR);
+					G.add_edge(v,u,INF);
+				}
+				
+				if(x + 1 < Xin){
+					int posLU = 0,negLU = 0;
+
+					if(x > 0 && y > 0)
+						posLU = abs(get(graysIn[t],y,x - 1) - get(graysIn[t],y - 1,x));
+					else if(x > 0)
+						posLU = abs(get(graysIn[t],y,x - 1) - get(graysIn[t],y,x));
+					else if(y > 0)
+						posLU = abs(get(graysIn[t],y,x) - get(graysIn[t],y - 1,x));
+
+					if(x + 1 < Xin && y > 0)
+						negLU = abs(get(graysIn[t],y,x + 1) - get(graysIn[t],y - 1,x));
+					else if(x + 1 < Xin)
+						negLU = abs(get(graysIn[t],y,x + 1) - get(graysIn[t],y,x));
+					else if(y > 0)
+						negLU = abs(get(graysIn[t],y,x) - get(graysIn[t],y - 1,x));
+
+					int u = id(t,y,x),v = id(t,y,x + 1);
+					G.add_edge(u,v,negLU);
+					G.add_edge(v,u,posLU);
+				}
+				
+				if(x > 0 && y > 0)
+					G.add_edge(id(t,y,x),id(t,y - 1,x - 1),INF);
+
+				if(y > 0 && x + 1 < Xin)
+					G.add_edge(id(t,y,x),id(t,y - 1,x + 1),INF);
+
+				// (Y,T) edges
+
+				if(t + 1 < T){
+					int LR;
+
+					if(t > 0)
+						LR = abs(get(graysIn[t + 1],y,x) - get(graysIn[t - 1],y,x));
+					else
+						LR = abs(get(graysIn[t + 1],y,x) - get(graysIn[t],y,x));
+
+					int u = id(t,y,x),v = id(t + 1,y,x);
+					G.add_edge(u,v,LR);
+					G.add_edge(u,v,INF);
+				}
+
+				if(y + 1 < Yin){
+					int posLU = 0,negLU = 0;
+
+					if(y > 0 && t > 0)
+						posLU = abs(get(graysIn[t],y - 1,x) - get(graysIn[t - 1],y,x));
+					else if(y > 0)
+						posLU = abs(get(graysIn[t],y - 1,x) - get(graysIn[t],y,x));
+					else if(t > 0)
+						posLU = abs(get(graysIn[t],y,x) - get(graysIn[t - 1],y,x));
+
+					if(y + 1 < Yin && t > 0)
+						negLU = abs(get(graysIn[t],y + 1,x) - get(graysIn[t - 1],y,x));
+					else if(y + 1 < Yin)
+						negLU = abs(get(graysIn[t],y + 1,x) - get(graysIn[t],y,x));
+					else if(t > 0)
+						negLU = abs(get(graysIn[t],y,x) - get(graysIn[t - 1],y,x));
+
+					int u = id(t,y,x),v = id(t,y + 1,x);
+					G.add_edge(u,v,negLU);
+					G.add_edge(v,u,posLU);
+				}
+				
+				if(t > 0 && y > 0)
+					G.add_edge(id(t,y,x),id(t - 1,y - 1,x),INF);
+
+				if(t > 0 && y + 1 < Yin)
+					G.add_edge(id(t,y,x),id(t - 1,y + 1,x),INF);
+			}
+		}
+	}
+
+	for(int t = 0;t < T;++t){
+		for(int x = 0;x < Xin;++x)
+			G.add_edge(V - 2,id(t,0,x),INF);
+
+		for(int x = 0;x < Xin;++x)
+			G.add_edge(id(t,Yin - 1,x),V - 1,INF);
+	}
+
+	cout << "flow = " << G.max_flow(V - 2,V - 1,V) << endl;
+
+	cout << "E = " << G.E << endl;
+	for(int t = 0;t < T;++t)
+		seam[t] = frameIn[t].clone();
+
+	vector<int> cut = get_min_cut(V);
+	sort(cut.begin(),cut.end());
+
+	for(int t = 0;t < T;++t)
+		frameOut[t] = Mat_<Vec3b>(Yin - 1,Xin);
+
+	for(int i = 0;i < cut.size();i++){
+		int e = cut[i];
+		int u = G.to[e ^ 1],v = G.to[e];
+		//cout << u << " " << v << endl;
+
+		int t1 = u / (Yin * Xin),y1 = u % (Yin * Xin) / Xin,x1 = u % Xin;
+		int t2 = v / (Yin * Xin),y2 = v % (Yin * Xin) / Xin,x2 = v % Xin;
+
+		if(t1 == t2 && x1 == x2){
+			//cout << t1 << " " << y1 << " " << x1 << " | " << t2 << y2 << " " << x2 << endl;
+			seam[t1].at<Vec3b>(y1,x1) = Vec3b(0,0,255);
+
+			for(int y = 0;y < Yin;++y){
+				if(y < y1)
+					frameOut[t1].at<Vec3b>(y,x1) = frameIn[t1].at<Vec3b>(y,x1);
+				else
+					frameOut[t1].at<Vec3b>(y - 1,x1) = frameIn[t1].at<Vec3b>(y,x1);
+			}
+		}
+	}
+
+	for(int t = 0;t < T;++t){
+		
+		cout << "show frame " << t << endl;
+		imshow("original",frame[t]);
+		imshow("seam",seam[t]);
+		imshow("result",frameOut[t]);
+		waitKey(0);
+		
+
+		frameIn[t] = frameOut[t].clone();
+	}
+
+	--Yin;
 }
 
 void remove_vertical_seam(){
@@ -288,7 +441,7 @@ void remove_vertical_seam(){
 				if(x < x1)
 					frameOut[t1].at<Vec3b>(y1,x) = frameIn[t1].at<Vec3b>(y1,x);
 				else
-					frameOut[t2].at<Vec3b>(y1,x) = frameIn[t1].at<Vec3b>(y1,x - 1);
+					frameOut[t1].at<Vec3b>(y1,x - 1) = frameIn[t1].at<Vec3b>(y1,x);
 			}
 		}
 	}
@@ -330,6 +483,7 @@ void reduce(int dy, int dx){
 		waitKey(0);
 	}
 	*/
+	cout << "end reduce" << endl;
 }
 
 int main(){
@@ -347,18 +501,14 @@ int main(){
 
     while(true){
     	capture >> frame[T];
+    	
     	if(frame[T].empty())
     		break;
     	
-    	//cout << frame[T].rows << " " << frame[T].cols << endl;
-    	//cvtColor(frame[T],grays[T],CV_BGR2GRAY);
-
-    	//imshow("seam-carving",grays[T]);
-    	if(waitKey(2) == 'q') break;
     	++T;
     }
 
-    T = 10;
+    T = min(T,5);
     cout << "T = " << T << endl;
 
     Y0 = frame[0].rows;

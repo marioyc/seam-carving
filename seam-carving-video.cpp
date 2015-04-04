@@ -12,7 +12,7 @@ using namespace cv;
 using namespace std;
 
 const int INF = 100000000;
-const int MAX_V = 2000000;
+const int MAX_V = 2100000;
 const int MAX_E = 13 * MAX_V;
 
 struct flow_graph{
@@ -244,7 +244,7 @@ void remove_horizontal_seam(){
 			G.add_edge(id(t,Yin - 1,x),V - 1,INF);
 	}
 
-    cout << "E = " << G.E << endl;
+    cout << "E = " << G.E / 2 << endl;
     cout << "max flow" << endl;
 	G.max_flow(V - 2,V - 1,V);
 	
@@ -409,7 +409,7 @@ void remove_vertical_seam(){
 			G.add_edge(id(t,y,Xin - 1),V - 1,INF);
 	}
 
-    cout << "E = " << G.E << endl;
+    cout << "E = " << G.E / 2 << endl;
     cout << "max flow" << endl;
 	G.max_flow(V - 2,V - 1,V);
 
@@ -466,6 +466,25 @@ void remove_vertical_seam(){
     --Xin;
 }
 
+String to_string(int n){
+    if(n == 0) return "0";
+    String ret;
+
+    while(n > 0){
+        ret = (char)('0' + n % 10) + ret;
+        n /= 10;
+    }
+
+    return ret;
+}
+
+void write(string file){
+    VideoWriter out(file,CV_FOURCC('M','J','P','G'),10, Size(Xin,Yin),true);
+
+    for(int t = 0;t < T;++t)
+        out.write(frameIn[t]);
+}
+
 void reduce(int dy, int dx){
 	cout << "reduce : " << dy << " " << dx << endl;
 
@@ -476,11 +495,13 @@ void reduce(int dy, int dx){
 	for(int i = 0;i < dy;++i){
 		cout << "\nHorizontal seam " << i << endl;
 		remove_horizontal_seam();
+        write("result-horizontal-" + to_string(i) + ".avi");
 	}
 
 	for(int i = 0;i < dx;++i){
 		cout << "\nVertical seam " << i << endl;
 		remove_vertical_seam();
+        write("result-vertical-" + to_string(i) + ".avi");
 	}
 
     // show results
@@ -494,10 +515,7 @@ void reduce(int dy, int dx){
     */
 
     // save results
-    VideoWriter out("result.avi",CV_FOURCC('M','J','P','G'),10, Size(Xin,Yin),true);
-
-    for(int t = 0;t < T;++t)
-        out.write(frameIn[t]);
+    write("result.avi");
 }
 
 int main(){

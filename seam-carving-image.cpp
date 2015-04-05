@@ -596,6 +596,7 @@ void add_vertical(Mat &I, int XF){
 
 void process(Mat &I, int YF, int XF){
     cout << "Process (" << I.rows << ", " << I.cols << ") -> (" << YF << ", " << XF << ")" << endl;
+
     if(YF < I.rows)
         remove_horizontal(I,YF);
     else if(YF > I.rows)
@@ -619,31 +620,32 @@ int main(){
     imshow("seam-carving",I);
     waitKey(0);
 
-    int Y0 = I.rows,X0 = I.cols,YF,XF;
+    int Y0 = I.rows,X0 = I.cols,dy,dx;
 
     cout << "Original dimensions: Rows = " << Y0 << " Cols = " << X0 << '\n';
 
-    cin >> YF;
-    YF += Y0;
+    cin >> dy;
+    int YF = Y0 + dy;
 
-    cin >> XF;
-    XF += X0 ;
+    cin >> dx;
+    int XF = X0 + dx;
 
     cout << "Desired dimension: Rows = " << YF << " Cols = " << XF << '\n';
 
-    Mat_<Vec3b> I2 = I.clone();
+    if(YF < Y0 && XF < X0){
+        Mat_<Vec3b> I2 = I.clone();
+        reduce(I,YF,XF);
+        // reduce with forward energy
+        reduce(I2,YF,XF,true);
+    }else{
+        process(I,YF,XF);
+        imshow("seam-carving-out",I);
+        waitKey(0);
 
-    reduce(I,YF,XF);
-    reduce(I2,YF,XF,true);
-
-    /*process(I,YF,XF);
-
-    imshow("seam-carving-out",I);
-    waitKey(0);
-
-    process(I,Y0,X0);
-    imshow("seam-carving-out-2",I);
-    waitKey(0);*/
+        process(I,Y0,X0);
+        imshow("seam-carving-out-2",I);
+        waitKey(0);
+    }
 
     fclose(stdin);
 
